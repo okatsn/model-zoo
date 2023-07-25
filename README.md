@@ -74,7 +74,7 @@ Flux v0.13 is the latest right now, marked with ☀️; models upgraded to use  
   * [Spatial Transformer](vision/spatial_transformer) ☀️ v0.13 +
 * CIFAR10
   * [VGG 16/19](vision/vgg_cifar10) ☀️ v0.13 +
-  * [ConvMixer "Patches are all you need?"](vision/convmixer_cifar10/) ☀️ v0.13
+  * [ConvMixer "Patches are all you need?"](vision/convmixer_cifar10/) ☀️ v0.14+
 
 **Text**
 * [CharRNN](text/char-rnn) ☀️ v0.13 +
