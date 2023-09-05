@@ -1,22 +1,21 @@
 # # RNN Character level
 
-# In this example, we create a character-level recurrent neural network. 
-# A recurrent neural network (RNN) outputs a prediction and a hidden state at each step 
-# of the computation. The hidden state captures historical information of a sequence 
+# In this example, we create a character-level recurrent neural network.
+# A recurrent neural network (RNN) outputs a prediction and a hidden state at each step
+# of the computation. The hidden state captures historical information of a sequence
 # (i.e., the neural network has memory) and the output is the final prediction of the model.
 # We use this type of neural network to model sequences such as text or time series.
-
 
 # ![char-rnn](../char-rnn/docs/rnn-train.png)
 
 # Source: https://d2l.ai/chapter_recurrent-neural-networks/rnn.html#rnn-based-character-level-language-models
 
-# This example demonstrates the use of Flux’s implementation of the 
-# [Long Short Term Memory recurrent layer](https://www.researchgate.net/publication/13853244_Long_Short-term_Memory)(LSTM) 
-# which is an RNN that generally exhibits a longer memory span over sequences as well as 
-# [Flux utility functions](https://fluxml.ai/Flux.jl/stable/utilities/). 
+# This example demonstrates the use of Flux’s implementation of the
+# [Long Short Term Memory recurrent layer](https://www.researchgate.net/publication/13853244_Long_Short-term_Memory)(LSTM)
+# which is an RNN that generally exhibits a longer memory span over sequences as well as
+# [Flux utility functions](https://fluxml.ai/Flux.jl/stable/utilities/).
 
-# If you need more information about how RNNs work and related technical concepts, 
+# If you need more information about how RNNs work and related technical concepts,
 # check out the following resources:
 
 # * [The Unreasonable Effectiveness of Recurrent Neural Networks](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
@@ -45,7 +44,7 @@ end
 
 # ## Data
 
-# We create the function `getdata` to download the training data and create arrays of batches 
+# We create the function `getdata` to download the training data and create arrays of batches
 # for training the model:
 
 
@@ -63,9 +62,40 @@ function getdata(args::Args)
     stop = '_'
 
     N = length(alphabet)
-    
-    ## Partitioning the data as sequence of batches, which are then collected 
+
+    ## Partitioning the data as sequence of batches, which are then collected
     ## as array of batches
+    # KEYNOTE: Explain (by default kwargs):
+    # - There are 4573338 characters in the text
+    # - `text` is `chunk`ed into `batchsz` of 50
+    #   - textchunk = chunk(text, args.batchsz)
+    #   - `textchunk` is a Vector{Vecotor{Char}} of length 50,
+    #   - with each element a Vector{Char} of length ~91467.
+    # - Chunked text is converted into 91467 batch sequences,
+    #   - with each element a Vector{Char} of length 50; must refer `batchseq`.
+    #   - Since elements of `textchunk` are not identical in length,
+    #     additional `stop` character is appended to each batch sequence
+    #     to suffice a total number of 50 sequences with each of length 91467.
+    #   - try:
+    #     - batchseq(textchunk, stop) .|> length |> unique |> only == 50
+    #     - batchseq(textchunk, stop) |> length == 91467
+    # - Partition batch sequences into a vector of 1830 (91467/50 = 1829.34)
+    #   - each element is of length `seqlen` (50)
+    #   - the length of last element might be less of `seqlen` (50)
+    # - Ys is a shift in Xs
+    # - Visualization:
+    #
+    #                ⎴ 	  ⎴
+    # textchunk = [['B', 'e', 'f', 'o', 'r', 'e' ...],  # chunk1
+    #              ['a', ' ', 'p', 'i', 'g', '.' ...],  # chunk2
+    #              ['t', 'h', 'e', ' ', 'm', 'a' ...],
+    #              ['c', 'o', 's', 'i', 'n', 'e' ...],
+    #              ['h', 'i', 'm', ' ', 'w', 'i' ...],
+    #              ['s', 'e', 'l', 'f', ',', ' ' ...],
+    #              ['e', 'l', 'a', 's', 't', 'i' ...],
+    #              ['q', 'u', 'i', 't', '.', ' ' ...]]  # chunk50
+    #                ⎵    ⎵
+    #       batchseq1^,   ^batchseq2, ... (total 91467)
     Xs = partition(batchseq(chunk(text, args.batchsz), stop), args.seqlen)
     Ys = partition(batchseq(chunk(text[2:end], args.batchsz), stop), args.seqlen)
     Xs = [Flux.onehotbatch.(bs, (alphabet,)) for bs in Xs]
@@ -76,26 +106,27 @@ end
 
 # The function `getdata` performs the following tasks:
 
-# * Downloads a dataset of [all of Shakespeare's works (concatenated)](https://cs.stanford.edu/people/karpathy/char-rnn/shakespeare_input.txt) 
+# * Downloads a dataset of [all of Shakespeare's works (concatenated)](https://cs.stanford.edu/people/karpathy/char-rnn/shakespeare_input.txt)
 # if not previously downloaded. This function loads the data as a vector of characters with the function `collect`.
 # * Gets the alphabet. It consists of the unique characters of the data and the stop character ‘_’.
 # * One-hot encodes the alphabet and the stop character.
 # * Gets the size of the alphabet N.
-# * Partitions the data as an array of batches. Note that the `Xs` array contains the sequence of characters in the text whereas the `Ys` array contains the next character of the sequence. 
+# * Partitions the data as an array of batches. Note that the `Xs` array contains the sequence of characters in the text whereas the `Ys` array contains the next character of the sequence.
 
 # ## Model
 
 # We create the RNN with two Flux’s LSTM layers and an output layer of the size of the alphabet:
-
+# KEYNOTE:
+# - `N` is the number of possible alphabets/characters in the `text`
 function build_model(N::Int)
     return Chain(
             LSTM(N => 128),
             LSTM(128 => 128),
             Dense(128 => N))
-end 
+end
 
-# The size of the input and output layers is the same as the size of the alphabet. 
-# Also, we set the size of the hidden layers to 128. 
+# The size of the input and output layers is the same as the size of the alphabet.
+# Also, we set the size of the hidden layers to 128.
 
 # ## Train the model
 
@@ -108,7 +139,7 @@ function train(; kws...)
 
     ## Select the correct device
     device = args.usegpu ? gpu : cpu
-    
+
     ## Get Data
     Xs, Ys, N, alphabet = getdata(args)
 
@@ -130,7 +161,7 @@ function train(; kws...)
         Flux.reset!(m)
         return sum(logitcrossentropy.([m(x) for x in xs], ys))
     end
-    
+
     ## Training
     opt_state = Flux.setup(Adam(args.lr), model)
 
@@ -142,7 +173,7 @@ function train(; kws...)
             zip(trainX, trainY),
             opt_state
         )
-        
+
         ## Show loss-per-character over the test set
         @show sum(loss.(Ref(model), testX, testY)) / (args.batchsz * args.seqlen * length(testX))
     end
@@ -153,19 +184,19 @@ end
 
 # * Calls the function `getdata` to obtain the train and test data as well as the alphabet and its size.
 # * Calls the function `build_model` to create the RNN.
-# * Defines the loss function. For this type of neural network, we use the [logitcrossentropy](https://fluxml.ai/Flux.jl/stable/models/losses/#Flux.Losses.logitcrossentropy) 
-# loss function. Notice that it is important that we call the function [reset!](https://fluxml.ai/Flux.jl/stable/models/layers/#Flux.reset!) 
+# * Defines the loss function. For this type of neural network, we use the [logitcrossentropy](https://fluxml.ai/Flux.jl/stable/models/losses/#Flux.Losses.logitcrossentropy)
+# loss function. Notice that it is important that we call the function [reset!](https://fluxml.ai/Flux.jl/stable/models/layers/#Flux.reset!)
 # before computing the loss so that it resets the hidden state of a recurrent layer back to its original value
 # * Sets the [ADAM optimiser](https://fluxml.ai/Flux.jl/stable/training/optimisers/#Flux.Optimise.RADAM) with the learning rate *lr* we defined above.
 # * Creates a [callback](https://fluxml.ai/Flux.jl/stable/training/training/#Callbacks) *evalcb* so that you can observe the training process (print the loss value).
-# * Runs the training loop using [Flux’s train!](https://fluxml.ai/Flux.jl/stable/training/training/#Flux.Optimise.train!). 
+# * Runs the training loop using [Flux’s train!](https://fluxml.ai/Flux.jl/stable/training/training/#Flux.Optimise.train!).
 
 # ## Test the model
 
-# We define the function `sample_data` to test the model. 
-# It generates samples of text with the alphabet that the function `getdata` computed. 
-# Notice that it obtains the model’s prediction by calling the 
-# [softmax function](https://fluxml.ai/Flux.jl/stable/models/nnlib/#Softmax) 
+# We define the function `sample_data` to test the model.
+# It generates samples of text with the alphabet that the function `getdata` computed.
+# Notice that it obtains the model’s prediction by calling the
+# [softmax function](https://fluxml.ai/Flux.jl/stable/models/nnlib/#Softmax)
 # to get the probability distribution of the output and then it chooses randomly the prediction.
 
 function sample_data(m, alphabet, len; seed = "")
