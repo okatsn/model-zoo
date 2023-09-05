@@ -84,18 +84,20 @@ function getdata(args::Args)
     #   - the length of last element might be less of `seqlen` (50)
     # - Ys is a shift in Xs
     # - Visualization:
-    #
+    #                partition_1, ... ,          partition_1830
+    #               ┏━━━━━━━━━...━━━━┓           ┏━...━━━┓
     #                ⎴ 	  ⎴
-    # textchunk = [['B', 'e', 'f', 'o', 'r', 'e' ...],  # chunk1
-    #              ['a', ' ', 'p', 'i', 'g', '.' ...],  # chunk2
-    #              ['t', 'h', 'e', ' ', 'm', 'a' ...],
-    #              ['c', 'o', 's', 'i', 'n', 'e' ...],
-    #              ['h', 'i', 'm', ' ', 'w', 'i' ...],
-    #              ['s', 'e', 'l', 'f', ',', ' ' ...],
-    #              ['e', 'l', 'a', 's', 't', 'i' ...],
-    #              ['q', 'u', 'i', 't', '.', ' ' ...]]  # chunk50
-    #                ⎵    ⎵
-    #       batchseq1^,   ^batchseq2, ... (total 91467)
+    # textchunk = [['B', 'e', 'f', 'o', 'r', 'e' ..., ' '],  # chunk1
+    #              ['a', ' ', 'p', 'i', 'g', '.' ..., ' '],  # chunk2
+    #              ['t', 'h', 'e', ' ', 'm', 'a' ..., ' '],
+    #              ['c', 'o', 's', 'i', 'n', 'e' ..., ' '],
+    #              ['h', 'i', 'm', ' ', 'w', 'i' ..., ' '],
+    #              ['s', 'e', 'l', 'f', ',', ' ' ..., ' '],
+    #              ['e', 'l', 'a', 's', 't', 'i' ..., ' '],
+    #              ['q', 'u', 'i', 't', '.', ' ' ..., ' ']]  # chunk50
+    #                ⎵    ⎵         ⎵                   ⎵
+    #      batchseq  1,   2, ...    50, ...             91467
+    #                               ^seqlen
     Xs = partition(batchseq(chunk(text, args.batchsz), stop), args.seqlen)
     Ys = partition(batchseq(chunk(text[2:end], args.batchsz), stop), args.seqlen)
     Xs = [Flux.onehotbatch.(bs, (alphabet,)) for bs in Xs]
