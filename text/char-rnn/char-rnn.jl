@@ -228,3 +228,13 @@ end
 cd(@__DIR__)
 m, alphabet = train()
 sample_data(m, alphabet, 1000) |> println
+
+# KEYNOTE: Noted that model's hidden state has changed after making a prediction
+Flux.reset!(m)
+c = 'e' # initial seed character
+m0 = deepcopy(m)
+c = wsample(alphabet, softmax(m(onehot(c, alphabet))))
+m1 = deepcopy(m)
+@assert m0.layers[1].state != m1.layers[1].state
+Flux.reset!(m1)
+@assert m0.layers[1].state == m1.layers[1].state
