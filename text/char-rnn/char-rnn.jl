@@ -238,3 +238,22 @@ m1 = deepcopy(m)
 @assert m0.layers[1].state != m1.layers[1].state
 Flux.reset!(m1)
 @assert m0.layers[1].state == m1.layers[1].state
+
+
+
+# KEYNOTE: Batch size may change
+# - input can be a vector of N or N by n Matrix
+# - however, it may leads erroroneous output without raising an error!
+# - https://fluxml.ai/Flux.jl/stable/models/layers/#Recurrent-Models
+
+r = RNN(3 => 5)
+r.state |> size # (5, 1)
+r(rand(Float32, 3)) |> size # (5,)
+r.state |> size # (5, 1)
+
+r(rand(Float32, 3, 10)) |> size # batch size of 10. output: (5, 10)
+
+r.state |> size # state shape has changed. output=(5, 10)
+
+# Flux.reset!(r) # if this failed (not reset),
+r(rand(Float32, 3)) |> size # erroneously outputs a length 5*10 = 50 vector.
