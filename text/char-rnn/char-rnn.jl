@@ -152,6 +152,8 @@ function train(; kws...)
     testX,  testY =  Xs[perm[(split+1):end]], Ys[perm[(split+1):end]]
 
     ## Move all data to the correct device
+    # KEYNOTE: feed data into cpu/gpu
+    # - e.g.: trainX, trainY, testX, testY = gpu.((trainX, trainY, testX, testY))
     trainX, trainY, testX, testY = device.((trainX, trainY, testX, testY))
 
     ## Constructing Model
@@ -159,12 +161,14 @@ function train(; kws...)
 
     function loss(m, xs, ys)
         Flux.reset!(m)
+        # KEYNOTE: Reset the hidden state of a recurrent layer back to its original value BEFORE making a prediction.
         return sum(logitcrossentropy.([m(x) for x in xs], ys))
     end
 
     ## Training
     opt_state = Flux.setup(Adam(args.lr), model)
 
+    # KEYNOTE: Hidden state is `reset!` in each epoch in calling the `loss`.
     for epoch = 1:args.epochs
         @info "Training, epoch $(epoch) / $(args.epochs)"
         Flux.train!(
@@ -196,12 +200,14 @@ end
 # We define the function `sample_data` to test the model.
 # It generates samples of text with the alphabet that the function `getdata` computed.
 # Notice that it obtains the model’s prediction by calling the
-# [softmax function](https://fluxml.ai/Flux.jl/stable/models/nnlib/#Softmax)
-# to get the probability distribution of the output and then it chooses randomly the prediction.
+# KEYNOTE:
+# - [softmax function](https://fluxml.ai/Flux.jl/stable/models/nnlib/#Softmax)
+#   to get the probability distribution of the output and
+#   then it chooses randomly the prediction.
 
 function sample_data(m, alphabet, len; seed = "")
     m = cpu(m)
-    Flux.reset!(m)
+    Flux.reset!(m) # KEYNOTE: Reset the hidden state of a recurrent layer back to its original value BEFORE making a prediction.
     buf = IOBuffer()
     if seed == ""
         seed = string(rand(alphabet))
