@@ -97,7 +97,7 @@ function getdata(args::Args)
     #              ['q', 'u', 'i', 't', '.', ' ' ..., ' ']]  # chunk50
     #                ⎵    ⎵         ⎵                   ⎵
     #      batchseq  1,   2, ...    50, ...             91467
-    #                               ^seqlen
+    #                               ^seqlen ("Length of batch sequences")
     Xs = partition(batchseq(chunk(text, args.batchsz), stop), args.seqlen)
     Ys = partition(batchseq(chunk(text[2:end], args.batchsz), stop), args.seqlen)
     Xs = [Flux.onehotbatch.(bs, (alphabet,)) for bs in Xs]
