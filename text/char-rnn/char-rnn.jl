@@ -201,6 +201,8 @@ end
 # It generates samples of text with the alphabet that the function `getdata` computed.
 # Notice that it obtains the model’s prediction by calling the
 # KEYNOTE:
+# - Model output a vector of N values. N is the number of `alphabet`
+# - softmax on the output vector => the probabilities of each `alphabet`.
 # - [softmax function](https://fluxml.ai/Flux.jl/stable/models/nnlib/#Softmax)
 #   to get the probability distribution of the output and
 #   then it chooses randomly the prediction.
