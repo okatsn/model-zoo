@@ -90,16 +90,19 @@ function getdata(args::Args)
     # textchunk = [['B', 'e', 'f', 'o', 'r', 'e' ..., ' '],  # chunk1
     #              ['a', ' ', 'p', 'i', 'g', '.' ..., ' '],  # chunk2
     #              ['t', 'h', 'e', ' ', 'm', 'a' ..., ' '],
-    #              ['c', 'o', 's', 'i', 'n', 'e' ..., ' '],
+    #              ['c', 'o', 's', 'i', 'n', 'e' ...,], # chunk is not guarantee in length!
     #              ['h', 'i', 'm', ' ', 'w', 'i' ..., ' '],
     #              ['s', 'e', 'l', 'f', ',', ' ' ..., ' '],
     #              ['e', 'l', 'a', 's', 't', 'i' ..., ' '],
     #              ['q', 'u', 'i', 't', '.', ' ' ..., ' ']]  # chunk50
-    #                ⎵    ⎵         ⎵                   ⎵
-    #      batchseq  1,   2, ...    50, ...             91467
+    #                ⎵    ⎵         ⎵                  ⎵
+    #      batchseq  1,   2, ...    50, ...            91467
     #                               ^seqlen ("Length of batch sequences")
     Xs = partition(batchseq(chunk(text, args.batchsz), stop), args.seqlen)
     Ys = partition(batchseq(chunk(text[2:end], args.batchsz), stop), args.seqlen)
+    # `partition(..., args.seqlen)` does similar job as
+    # `Flux.DataLoader(...; batchsize=args.seqlen)`,.
+
     Xs = [Flux.onehotbatch.(bs, (alphabet,)) for bs in Xs]
     Ys = [Flux.onehotbatch.(bs, (alphabet,)) for bs in Ys]
 
